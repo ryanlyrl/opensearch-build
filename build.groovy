@@ -29,7 +29,9 @@ node("${params.BUILD_NODE}") {
         timeout(time: 30, unit: 'MINUTES') {
             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                 sh '''
-                    sh ./release/docker/build-docker.sh -t create -v ${OPENSEARCH_VERSION} -p ${OPENSEARCH_PRODUCT}
+                    pushd release/docker
+                    sh ./build-docker.sh -t create -v ${OPENSEARCH_VERSION} -p ${OPENSEARCH_PRODUCT}
+                    popd
                 '''
             }
             if(currentBuild.currentResult == "FAILURE") {
