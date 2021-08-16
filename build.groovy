@@ -4,7 +4,8 @@ properties([
                 string(defaultValue: params.REPO_URL ?: "git@github.com:MicroFocus/opensearch-build.git", description: 'OpenSearch Build Git Repo URL', name: 'REPO_URL', trim: false),
                 string(defaultValue: params.BUILD_NODE ?: 'docker', description: 'Node to perform build on', name: 'BUILD_NODE', trim: false),
                 string(defaultValue: params.OPENSEARCH_PRODUCT ?: 'opensearch', description: 'Specify the product, e.g. opensearch or opensearch-dashboards', name: 'OPENSEARCH_PRODUCT', trim: false),
-                string(defaultValue: params.OPENSEARCH_VERSION ?: '1.0.0', description: 'Specify the version of opensearch eg: 1.0.0 or 1.0.0-beta1', name: 'OPENSEARCH_VERSION', trim: false)
+                string(defaultValue: params.OPENSEARCH_VERSION ?: '1.0.0', description: 'Specify the version of opensearch eg: 1.0.0 or 1.0.0-beta1', name: 'OPENSEARCH_VERSION', trim: false),
+                string(defaultValue: params.OPENSEARCH_DOCKERFILE ?: 'dockerfiles/opensearch.al2.dockerfile', description: 'Specify the name of dockerfile for opensearch', name: 'OPENSEARCH_DOCKERFILE', trim: false)
         ]),
         buildDiscarder(logRotator(numToKeepStr: '10')),
         disableConcurrentBuilds()
@@ -30,7 +31,7 @@ node("${params.BUILD_NODE}") {
             catchError(buildResult: 'FAILURE', stageResult: 'FAILURE') {
                 sh '''
                     pushd release/docker
-                    sh ./build-docker.sh -t create -v ${OPENSEARCH_VERSION} -p ${OPENSEARCH_PRODUCT}
+                    sh ./build-image.sh -v ${OPENSEARCH_VERSION} -p ${OPENSEARCH_PRODUCT} -f ${OPENSEARCH_DOCKERFILE}
                     popd
                 '''
             }
