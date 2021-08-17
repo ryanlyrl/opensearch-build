@@ -5,7 +5,7 @@ properties([
                 string(defaultValue: params.BUILD_NODE ?: 'docker', description: 'Node to perform build on', name: 'BUILD_NODE', trim: false),
                 string(defaultValue: params.OPENSEARCH_PRODUCT ?: 'opensearch', description: 'Specify the product, e.g. opensearch or opensearch-dashboards', name: 'OPENSEARCH_PRODUCT', trim: false),
                 string(defaultValue: params.OPENSEARCH_VERSION ?: '1.0.0', description: 'Specify the version of opensearch eg: 1.0.0 or 1.0.0-beta1', name: 'OPENSEARCH_VERSION', trim: false),
-                string(defaultValue: params.OPENSEARCH_DOCKERFILE ?: 'dockerfiles/opensearch.al2.dockerfile', description: 'Specify the name of dockerfile for opensearch', name: 'OPENSEARCH_DOCKERFILE', trim: false)
+                string(defaultValue: params.OPENSEARCH_DOCKERFILE ?: 'dockerfiles/opensearch.microfocus.dockerfile', description: 'Specify the name of dockerfile for opensearch', name: 'OPENSEARCH_DOCKERFILE', trim: false)
         ]),
         buildDiscarder(logRotator(numToKeepStr: '10')),
         disableConcurrentBuilds()
