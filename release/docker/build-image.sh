@@ -84,6 +84,6 @@ else
 fi
 
 # Docker build
-docker build --build-arg VERSION=$VERSION --build-arg BUILD_DATE=`date -u +%Y-%m-%dT%H:%M:%SZ` -f $DOCKERFILE $DIR -t opensearchproject/$PRODUCT:$VERSION
-docker tag opensearchproject/$PRODUCT:$VERSION opensearchproject/$PRODUCT:latest
+docker build --build-arg VERSION=$VERSION --build-arg BUILD_DATE=`date -u +%Y-%m-%dT%H:%M:%SZ` -f $DOCKERFILE $DIR -t $PRODUCT:$VERSION
+docker tag $PRODUCT:$VERSION $PRODUCT:latest
 
