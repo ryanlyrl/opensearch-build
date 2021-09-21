@@ -66,21 +66,21 @@ fi
 
 function push_image {
     # Build Verion Tag for our docker registry
-    docker tag "opensearchproject/$PRODUCT:$VERSION" "${DOCKER_REGISTRY}/opensearchproject/$PRODUCT:$VERSION"
-    docker push "${DOCKER_REGISTRY}/opensearchproject/$PRODUCT:$VERSION"
+    docker tag "$PRODUCT:$VERSION" "${DOCKER_REGISTRY}/$PRODUCT:$VERSION"
+    docker push "${DOCKER_REGISTRY}/$PRODUCT:$VERSION"
 
     # Build latest tag
-    docker tag "opensearchproject/$PRODUCT:latest" "${DOCKER_REGISTRY}/opensearchproject/$PRODUCT:latest"
-    docker push "${DOCKER_REGISTRY}/opensearchproject/$PRODUCT:latest"
+    docker tag "$PRODUCT:latest" "${DOCKER_REGISTRY}/$PRODUCT:latest"
+    docker push "${DOCKER_REGISTRY}/$PRODUCT:latest"
 }
 
 
 function clean_image {
     # Remove all the built images
-    docker rmi "opensearchproject/$PRODUCT:$VERSION"
-    docker rmi "opensearchproject/$PRODUCT:latest"
-    docker rmi "${DOCKER_REGISTRY}/opensearchproject/$PRODUCT:$VERSION"
-    docker rmi "${DOCKER_REGISTRY}/opensearchproject/$PRODUCT:latest"
+    docker rmi "$PRODUCT:$VERSION"
+    docker rmi "$PRODUCT:latest"
+    docker rmi "${DOCKER_REGISTRY}/$PRODUCT:$VERSION"
+    docker rmi "${DOCKER_REGISTRY}/$PRODUCT:latest"
     docker system prune -f
 }
 

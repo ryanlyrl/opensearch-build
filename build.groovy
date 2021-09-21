@@ -42,7 +42,7 @@ node("${params.BUILD_NODE}") {
     }
 
     stage('Publish Docker Image') {
-        timeout(time: 10, unit: 'MINUTES') {
+        timeout(time: 20, unit: 'MINUTES') {
             catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
                  withCredentials([usernamePassword(credentialsId: 'Microfocus-Artifactory', usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     sh '''
