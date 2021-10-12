@@ -15,6 +15,9 @@ plugins.security.ssl.http.pemtrustedcas_filepath: certs/opensearch-ca.crt
 plugins.security.allow_unsafe_democertificates: true
 plugins.security.allow_default_init_securityindex: true
 
+plugins.security.restapi.roles_enabled: ["all_access", "security_rest_api_access", "admin"]
+plugins.security.unsupported.restapi.allow_securityconfig_modification: true
+plugins.security.ssl.http.clientauth_mode: NONE
+
 plugins.security.nodes_dn:
   - 'CN=opensearch-svc'
-
