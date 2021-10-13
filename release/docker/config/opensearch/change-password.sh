@@ -23,7 +23,7 @@ popd
 pushd /usr/share/opensearch/plugins/opensearch-security/securityconfig
 cat << EOF >> ./internal_users.yml
 
-interset:
+$OPENSEARCH_USER:
   hash: $HASH_PASSWORD
   reserved: false
   backend_roles:
