@@ -52,7 +52,7 @@ RUN groupadd -g $GID opensearch && \
 COPY opensearch.tgz /tmp/opensearch/opensearch.tgz
 RUN tar -xzf /tmp/opensearch/opensearch.tgz -C $OPENSEARCH_HOME --strip-components=1 && rm -rf /tmp/opensearch
 COPY opensearch-docker-entrypoint.sh opensearch-onetime-setup.sh $OPENSEARCH_HOME/
-COPY log4j2.properties opensearch.yml custom-opensearch.yml $OPENSEARCH_HOME/config/
+COPY log4j2.properties opensearch.yml custom-opensearch.yml change-password.sh $OPENSEARCH_HOME/config/
 COPY performance-analyzer.properties $OPENSEARCH_HOME/plugins/opensearch-performance-analyzer/pa_config/
 
 
