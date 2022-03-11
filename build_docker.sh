@@ -1,7 +1,9 @@
-VERSION=1.0.0
+#!/bin/bash
+VERSION=1.2.4
 PRODUCT=opensearch
 DOCKERFILE=dockerfiles/opensearch.microfocus.dockerfile
+ARCH=x64
 
-pushd release/docker
-sh ./build-image.sh -v ${VERSION} -p ${PRODUCT} -f ${DOCKERFILE}
+pushd docker/release
+./build-image-single-arch.sh -v ${VERSION} -p ${PRODUCT} -f ${DOCKERFILE} -a ${ARCH}
 popd

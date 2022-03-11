@@ -1,29 +1,9 @@
+# Copyright OpenSearch Contributors
 # SPDX-License-Identifier: Apache-2.0
-# 
-# The OpenSearch Contributors require contributions made to
-# this file be licensed under the Apache-2.0 license or a
-# compatible open source license.
-# 
-# Modifications Copyright OpenSearch Contributors. See
-# GitHub history for details.
- 
- 
-# Copyright 2021 Amazon.com, Inc. or its affiliates. All Rights Reserved.
-# 
-# Licensed under the Apache License, Version 2.0 (the "License").
-# You may not use this file except in compliance with the License.
-# A copy of the License is located at
-# 
-#     http://www.apache.org/licenses/LICENSE-2.0
-# 
-# or in the "license" file accompanying this file. This file is distributed 
-# on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either 
-# express or implied. See the License for the specific language governing 
-# permissions and limitations under the License.
 
 
 # This dockerfile generates an AmazonLinux-based image containing an OpenSearch installation.
-# It assumes that the working directory contains four files: an OpenSearch tarball (opensearch.tgz), log4j2.properties, opensearch.yml, opensearch-docker-entrypoint.sh, opensearch-onetime-setup.sh.
+# It assumes that the working directory contains these files: an OpenSearch tarball (opensearch.tgz), log4j2.properties, opensearch.yml, opensearch-docker-entrypoint.sh, opensearch-onetime-setup.sh.
 # Build arguments:
 #   VERSION: Required. Used to label the image.
 #   BUILD_DATE: Required. Used to label the image. Should be in the form 'yyyy-mm-ddThh:mm:ssZ', i.e. a date-time from https://tools.ietf.org/html/rfc3339. The timestamp must be in UTC.
@@ -33,27 +13,38 @@
 
 
 ########################### Stage 0 ########################
-FROM amazonlinux:2 AS linux_x64_stage_0
+FROM amazonlinux:2 AS linux_stage_0
 
 ARG UID=1999
 ARG GID=1999
+ARG TEMP_DIR=/tmp/opensearch
 ARG OPENSEARCH_HOME=/usr/share/opensearch
+ARG SECURITY_PLUGIN_DIR=$OPENSEARCH_HOME/plugins/opensearch-security
+ARG PERFORMANCE_ANALYZER_PLUGIN_DIR=$OPENSEARCH_HOME/plugins/opensearch-performance-analyzer
 
 # Update packages
 # Install the tools we need: tar and gzip to unpack the OpenSearch tarball, and shadow-utils to give us `groupadd` and `useradd`.
-RUN yum update -y && yum install -y tar gzip shadow-utils openssl && yum clean all
+# Install which to allow running of securityadmin.sh
+RUN yum update -y && yum install -y tar gzip shadow-utils which openssl && yum clean all
 
 # Create an opensearch user, group, and directory
 RUN groupadd -g $GID opensearch && \
     adduser -u $UID -g $GID -d $OPENSEARCH_HOME opensearch && \
-    mkdir /tmp/opensearch
+    mkdir $TEMP_DIR
 
 # Prepare working directory
-COPY opensearch.tgz /tmp/opensearch/opensearch.tgz
-RUN tar -xzf /tmp/opensearch/opensearch.tgz -C $OPENSEARCH_HOME --strip-components=1 && rm -rf /tmp/opensearch
-COPY opensearch-docker-entrypoint.sh opensearch-onetime-setup.sh $OPENSEARCH_HOME/
-COPY log4j2.properties opensearch.yml custom-opensearch.yml change-password.sh $OPENSEARCH_HOME/config/
-COPY performance-analyzer.properties $OPENSEARCH_HOME/plugins/opensearch-performance-analyzer/pa_config/
+# Copy artifacts and configurations to corresponding directories
+COPY * $TEMP_DIR/
+RUN ls -l $TEMP_DIR && \
+    tar -xzpf /tmp/opensearch/opensearch-`uname -p`.tgz -C $OPENSEARCH_HOME --strip-components=1 && \
+    mkdir -p $OPENSEARCH_HOME/data && chown -Rv $UID:$GID $OPENSEARCH_HOME/data && \
+    if [[ -d $SECURITY_PLUGIN_DIR ]] ; then chmod -v 750 $SECURITY_PLUGIN_DIR/tools/* ; fi && \
+    if [[ -d $PERFORMANCE_ANALYZER_PLUGIN_DIR ]] ; then cp -v $TEMP_DIR/performance-analyzer.properties $PERFORMANCE_ANALYZER_PLUGIN_DIR/pa_config/; fi && \
+    cp -v $TEMP_DIR/opensearch-docker-entrypoint.sh $TEMP_DIR/opensearch-onetime-setup.sh $OPENSEARCH_HOME/ && \
+    cp -v $TEMP_DIR/log4j2.properties $TEMP_DIR/opensearch.yml $OPENSEARCH_HOME/config/ && \
+    cp -v $TEMP_DIR/log4j2.properties $TEMP_DIR/custom-opensearch.yml $OPENSEARCH_HOME/config/ && \
+    ls -l $OPENSEARCH_HOME && \
+    rm -rf $TEMP_DIR
 
 
 ########################### Stage 1 ########################
@@ -64,36 +55,45 @@ ARG UID=1999
 ARG GID=1999
 ARG OPENSEARCH_HOME=/usr/share/opensearch
 
-# Copy from Stage0
-COPY --from=linux_x64_stage_0 $OPENSEARCH_HOME $OPENSEARCH_HOME
-WORKDIR $OPENSEARCH_HOME
-
 # Update packages
 # Install the tools we need: tar and gzip to unpack the OpenSearch tarball, and shadow-utils to give us `groupadd` and `useradd`.
-RUN yum update -y && yum install -y tar gzip shadow-utils openssl && yum clean all
+# Install which to allow running of securityadmin.sh
+RUN yum update -y && yum install -y tar gzip shadow-utils which openssl && yum clean all
 
 # Create an opensearch user, group
 RUN groupadd -g $GID opensearch && \
     adduser -u $UID -g $GID -d $OPENSEARCH_HOME opensearch
 
-# Setup OpenSearch
-RUN ./opensearch-onetime-setup.sh && \
-    chown -R $UID:$GID $OPENSEARCH_HOME
+# Copy from Stage0
+COPY --from=linux_stage_0 --chown=$UID:$GID $OPENSEARCH_HOME $OPENSEARCH_HOME
+WORKDIR $OPENSEARCH_HOME
 
-# remove Demo key and certificates
-RUN rm -f /usr/share/opensearch/config/root-ca.pem && rm -f /usr/share/opensearch/config/esnode* && rm -f /usr/share/opensearch/config/admin*.pem && rm -f /usr/share/opensearch/config/kirk*.pem
+# Set $JAVA_HOME
+RUN echo "export JAVA_HOME=$OPENSEARCH_HOME/jdk" >> /etc/profile.d/java_home.sh && \
+    echo "export PATH=\$PATH:\$JAVA_HOME/bin" >> /etc/profile.d/java_home.sh
 
-# Copy KNN Lib
-RUN cp -v $OPENSEARCH_HOME/plugins/opensearch-knn/knnlib/libKNNIndex*.so /usr/lib
+ENV JAVA_HOME=$OPENSEARCH_HOME/jdk
+ENV PATH=$PATH:$JAVA_HOME/bin
+
+# Add k-NN lib directory to library loading path variable
+ENV LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$OPENSEARCH_HOME/plugins/opensearch-knn/knnlib"
 
 # Change user
 USER $UID
+
+# Setup OpenSearch
+# Disable security demo installation during image build, and allow user to disable during startup of the container
+# Enable security plugin during image build, and allow user to disable during startup of the container
+ARG DISABLE_INSTALL_DEMO_CONFIG=true
+ARG DISABLE_SECURITY_PLUGIN=false
+RUN ./opensearch-onetime-setup.sh
 
 # Expose ports for the opensearch service (9200 for HTTP and 9300 for internal transport) and performance analyzer (9600 for the agent and 9650 for the root cause analysis component)
 EXPOSE 9200 9300 9600 9650
 
 ARG VERSION
 ARG BUILD_DATE
+ARG NOTES
 
 # Label
 LABEL org.label-schema.schema-version="1.0" \
@@ -102,7 +102,8 @@ LABEL org.label-schema.schema-version="1.0" \
   org.label-schema.url="https://opensearch.org" \
   org.label-schema.vcs-url="https://github.com/OpenSearch" \
   org.label-schema.license="Apache-2.0" \
-  org.label-schema.vendor="Amazon" \
+  org.label-schema.vendor="OpenSearch" \
+  org.label-schema.description="$NOTES" \
   org.label-schema.build-date="$BUILD_DATE"
 
 # CMD to run
